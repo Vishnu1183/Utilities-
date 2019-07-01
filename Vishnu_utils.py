@@ -8,31 +8,27 @@ def feature_importance(model):
 feat_imp = feature_importance(model = model_name)
 
 
-
 # 2- getting jaccard distance from 2 strings 
 def jaccard_distance(a,b,q=2):
     """
     Equivalent of jaccard distance from stringdist in R.
-    Calculates jaccard distance with ngram = 2 for 2 strings
-    
+    Calculates jaccard distance with ngram = 2 for 2 strings  
     a , b the strings for which jaccard distance is to be calculcated
     q = n of n-gram
     """
     if a == b:
-        return 1
-    
-    ngram_a = []
-    for i in range(len(a)-(q-1)):
-        temp_a= a[i:i+q]
-        ngram_a.append(temp_a)
-        
-    ngram_b = []
-    for j in range(len(b)-(q-1)):
-        temp_b= b[j:j+q]
-        ngram_b.append(temp_b)
-        
-    set_a= set(ngram_a)
-    set_b= set(ngram_b)
+        return 1 
+    def ngrams(s,n):
+        ngram_s = []
+        for i in range(len(s)-(n-1)):
+            temp_s= s[i:i+n]
+            ngram_s.append(temp_s)
+        return ngram_s
+         
+    set_a= set(ngrams(s = a,n = q))
+    set_b= set(ngrams(s = b,n = q))
     #intersection = set_a.intersection(set_b)
     #union = set_b.union(set_a)
     return 1- (len(set_a.intersection(set_b)) /len(set_a.union(set_b)))
+
+
