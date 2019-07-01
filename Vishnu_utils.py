@@ -31,4 +31,14 @@ def jaccard_distance(a,b,q=2):
     #union = set_b.union(set_a)
     return 1- (len(set_a.intersection(set_b)) /len(set_a.union(set_b)))
 
+# 3- getting ngrams from string
+def ngrams(s,n):
+    """
+    generates the ngrams of a string
+    """
+    ngram_s = []
+    for i in range(len(s)-(n-1)):
+        temp_s= s[i:i+n]
+        ngram_s.append(temp_s)
+    return ngram_s
 
