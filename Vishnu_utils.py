@@ -26,7 +26,7 @@ def ngrams(s,n):
 def jaccard_distance(a,b,q=2):
     """
     Equivalent of jaccard distance from stringdist in R.
-    Calculates jaccard distance with ngram = 2 for 2 strings.  
+    Calculates jaccard distance with ngram = q (default q=2) for 2 strings.  
     a , b the strings for which jaccard distance is to be calculcated.
     q = n of n-gram.
     """
