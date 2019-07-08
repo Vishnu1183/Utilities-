@@ -2,10 +2,14 @@ import pandas as pd
 import numpy as np
 
 # 1- getting feature importance of variables with name for XGB model
-def feature_importance(model):
-    return(pd.DataFrame({'features' : model.get_booster().feature_names, 'importance' : model.feature_importances_}).sort_values('importance',ascending = False))
+def xgb_feature_imp(model):
+     """
+    Gives the feature importance along with variable names for an XGB Model.
+    """
+    return(pd.DataFrame({'features' : model.get_booster().feature_names, 'importance' : model.feature_importances_}).\
+           sort_values('importance',ascending = False))
 
-feat_imp = feature_importance(model = model_name)
+#feat_imp = xgb_feature_imp(model = your_model_name)
 
 
 
@@ -44,4 +48,5 @@ def jaccard_distance(a,b,q=2):
     #intersection = set_a.intersection(set_b)
     #union = set_b.union(set_a)
     return 1- (len(set_a.intersection(set_b)) /len(set_a.union(set_b)))
+
 
