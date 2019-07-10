@@ -45,8 +45,6 @@ def jaccard_distance(a,b,q=2):
          
     set_a= set(ngrams(s = a,n = q))
     set_b= set(ngrams(s = b,n = q))
-    #intersection = set_a.intersection(set_b)
-    #union = set_b.union(set_a)
     return 1- (len(set_a.intersection(set_b)) /len(set_a.union(set_b)))
 
 
@@ -59,7 +57,6 @@ def logreg_coef(model):
     intercept = pd.DataFrame({'variable' : 'intercept', 'coefficient' : model.intercept_})
     coefficient = pd.DataFrame({'variable' : X_train.columns, 'coefficient' : model.coef_.transpose().flatten()})
     coefficient = coefficient.reindex(coefficient.coefficient.abs().sort_values(ascending = False).index)
-    pd.concat([intercept,coefficient], axis = 0).reset_index(drop = True)
     return(pd.concat([intercept,coefficient], axis = 0).reset_index(drop = True))
 
 #lr_coefs = logreg_coef(model = your_model_name)
