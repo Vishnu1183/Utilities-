@@ -3,7 +3,7 @@ import numpy as np
 
 # 1- getting feature importance of variables with name for XGB model
 def xgb_feature_imp(model):
-     """
+    """
     Gives the feature importance along with variable names for an XGB Model.
     """
     return(pd.DataFrame({'features' : model.get_booster().feature_names, 'importance' : model.feature_importances_}).\
