@@ -63,3 +63,32 @@ def logreg_coef(model,data):
     return(pd.concat([intercept,coefficient], axis = 0).reset_index(drop = True))
 
 #lr_coefs = logreg_coef(model = your_model_name, data = X_train[features])
+
+
+# 5 - DIct Vectorizer on train and transforming it on test
+def dict_vec(train_set,cols,is_test, test_set):
+    """
+    returns dict vectorizer on train set or train & test set for chosen columns
+    train_set: Dataset on which DV is to be fit
+    cols: List of columns of train_set which are to be considered for DV
+    is_test: Boolean, If DV is to be transformed on test too
+    test_set: Test set on which DV is to be transformed
+    """
+    from sklearn.feature_extraction import DictVectorizer
+    import pandas as pd
+    dvec = DictVectorizer(sparse=False)
+    if not is_test:
+        train_dvec = dvec.fit_transform(train_set[cols].transpose().to_dict().values())
+        train_dvec = pd.DataFrame(train_dvec, index = train_set.index, columns = dvec.get_feature_names())
+        train_df = pd.concat([train_set.drop(cols, axis = 1),train_dvec], axis = 1)
+        return train_df,pd.DataFrame(),dvec
+    else:
+        train_dvec = dvec.fit_transform(train_set[cols].transpose().to_dict().values())
+        train_dvec = pd.DataFrame(train_dvec, index = train_set.index, columns = dvec.get_feature_names())
+        train_df = pd.concat([train_set.drop(cols, axis = 1),train_dvec], axis = 1)
+        test_dvec = dvec.transform(test_set[cols].transpose().to_dict().values())
+        test_dvec = pd.DataFrame(test_dvec, index = test_set.index, columns = dvec.get_feature_names())
+        test_df = pd.concat([test_set.drop(cols, axis = 1),test_dvec], axis = 1)
+        return train_df, test_df,dvec
+
+df_train,df_test,dv = dict_vec(train, ['Sex','SibSp', 'Parch', 'Pclass', 'Embarked'],is_test = True,test_set =test)
