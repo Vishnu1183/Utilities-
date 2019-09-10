@@ -50,13 +50,16 @@ def jaccard_distance(a,b,q=2):
 
 # 4 - getting intercept and coefficients of logistic regression model
 
-def logreg_coef(model):    
+def logreg_coef(model,data):    
     """
-    Gives the intercepts and coefficients along with variable names for logistic regression Model.
+    Gives the intercepts and coefficients along with variable names for logistic regression.
+    model : name of the logistic model
+    data :  data on which logistic model was fit, column order must be same as that of the
+            data on which model was fit
     """
     intercept = pd.DataFrame({'variable' : 'intercept', 'coefficient' : model.intercept_})
-    coefficient = pd.DataFrame({'variable' : X_train.columns, 'coefficient' : model.coef_.transpose().flatten()})
+    coefficient = pd.DataFrame({'variable' : data.columns, 'coefficient' : model.coef_.transpose().flatten()})
     coefficient = coefficient.reindex(coefficient.coefficient.abs().sort_values(ascending = False).index)
     return(pd.concat([intercept,coefficient], axis = 0).reset_index(drop = True))
 
-#lr_coefs = logreg_coef(model = your_model_name)
+#lr_coefs = logreg_coef(model = your_model_name, data = X_train[features])
