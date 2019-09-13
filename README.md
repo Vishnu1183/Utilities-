@@ -1,7 +1,7 @@
 # Utilities
 <h5> Various functions needed during data analysis</h5> <br>
 
-
+## vishnu_utils Functions
 ##### 1- getting feature importance of variables with name for XGB model -- xgb_feature_imp
 
 ##### 2- getting ngrams from string  -- ngrams
