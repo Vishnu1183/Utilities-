@@ -35,7 +35,7 @@ def jaccard_distance(a,b,q=2):
     q = n of n-gram.
     """
     if a == b:
-        return 1 
+        return 0 
     def ngrams(s,n):
         ngram_s = []
         for i in range(len(s)-(n-1)):
