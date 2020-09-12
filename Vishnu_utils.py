@@ -205,4 +205,87 @@ def proba_score_performance(actual, prediction, test_set=False, train_bins=0, ev
         return performance, model_KS, model_Gini, train_bins
 
     
+# 6 - returns various performance metrics from a trained estimator
+def get_perf_metric(estimator, X_train, X_test,y_train, y_test ,th = 0.5):
+    """
+    By : Vishnu Prakash Singh
+    This function gives various performance metrics of train and test set for binary classification.
+    Parameters
+    ----------
+    estimator : estimator instance; Trained classifier.
 
+    X_train : {array-like, sparse matrix} of shape (n_samples, n_features)
+    Input values for training set.
+
+    X_test : {array-like, sparse matrix} of shape (n_samples, n_features)
+    Input values for testing set.
+
+    y_train : array-like of shape (n_samples,)
+    Target values for training set.
+
+    y_test : array-like of shape (n_samples,)
+    Target values for testing set.
+
+    th : threshold above which predicted probability are tagged as class 1
+
+    Returns
+    -------
+    metric_dict : is a dictionary returned by this function with below keys
+
+    train_pred_prob : numpy array containing predicted probability for train set
+
+    test_pred_prob : numpy array containing predicted probability for test set
+
+    train_pred_class : numpy array containing predicted class for train set
+
+    test_pred_class : numpy array containing predicted class for train set
+
+    perf_df : Pandas dataframe containing roc_auc,precision,recall,accuracy,TN,FP,FN,TP,(gini & ks using kanishk_utils)
+
+    train_cf : Confusion matrix for train set
+
+    test_cf : Confusion matrix for test set
+
+    train_gini_table : Gini Table for training set using kanishk_utils
+
+    test_gini_table :   Gini Table for test set with train bins using kanishk_utils
+    """
+    from sklearn.metrics import accuracy_score,precision_score,recall_score,roc_auc_score,f1_score,confusion_matrix
+    train_pred_prob = estimator.predict_proba(X_train)[:,1]
+    test_pred_prob  = estimator.predict_proba(X_test)[:,1]
+
+    train_pred_class = 1*(train_pred_prob > th)  #estimator.predict(X_train)
+    test_pred_class = 1*(test_pred_prob > th)   #estimator.predict(X_test)
+
+    TN_Train, FP_Train, FN_Train, TP_Train = confusion_matrix(y_train,train_pred_class).ravel()
+    TN_Test, FP_Test, FN_Test, TP_Test = confusion_matrix(y_test,test_pred_class).ravel()
+
+    train_gini_table, train_KS, train_Gini, train_bins = \
+    proba_score_performance(actual = pd.Series(y_train), prediction = train_pred_prob, test_set=False,train_bins=0)
+    test_gini_table, test_KS, test_Gini = \
+    proba_score_performance(actual =  pd.Series(y_test), prediction = test_pred_prob, test_set=True,train_bins=train_bins)
+
+    perf_list = []
+    perf_list.append(['gini',train_Gini,test_Gini])
+    perf_list.append(['ks',train_KS,test_KS])
+    perf_list.append(['roc_auc',roc_auc_score(y_train,train_pred_prob),roc_auc_score(y_test,test_pred_prob)])
+    perf_list.append(['precision',precision_score(y_train,train_pred_class),precision_score(y_test,test_pred_class)])
+    perf_list.append(['recall', recall_score(y_train,train_pred_class),recall_score(y_test,test_pred_class)])
+    perf_list.append(['f1_score',f1_score(y_train,train_pred_class),f1_score(y_test,test_pred_class)])
+    perf_list.append(['accuracy',accuracy_score(y_train,train_pred_class),accuracy_score(y_test,test_pred_class)])
+    perf_list.append(['TN',TN_Train,TN_Test])
+    perf_list.append(['FP',FP_Train,FP_Test])
+    perf_list.append(['FN',FN_Train,FN_Test])
+    perf_list.append(['TP',TP_Train,TP_Test])
+    perf_list = pd.DataFrame(perf_list,columns = ['Metric','Train', 'Test']).set_index('Metric')
+    train_cf = pd.DataFrame(perf_list.loc[['TN','FP','FN','TP'],'Train'].values.reshape(2,2),\
+                  index=pd.MultiIndex.from_tuples([('Actual','0'), ('Actual', '1')]),
+                  columns=pd.MultiIndex.from_tuples([('Predicted','0'), ('Predicted', '1')]))
+    test_cf = pd.DataFrame(perf_list.loc[['TN','FP','FN','TP'],'Test'].values.reshape(2,2),\
+                  index=pd.MultiIndex.from_tuples([('Actual','0'), ('Actual', '1')]),
+                  columns=pd.MultiIndex.from_tuples([('Predicted','0'), ('Predicted', '1')]))
+    metric_dict = {'train_pred_prob':train_pred_prob, 'test_pred_prob' : test_pred_prob,
+                  'train_pred_class' : train_pred_class,'test_pred_class': test_pred_class,
+                  'perf_df': perf_list.T, 'train_cf' : train_cf, 'test_cf' :test_cf,
+                   'train_gini_table' : train_gini_table, 'test_gini_table':test_gini_table}
+    return metric_dict
