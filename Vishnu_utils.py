@@ -92,3 +92,117 @@ def dict_vec(train_set,cols,is_test, test_set):
         return train_df, test_df,dvec
 
 df_train,df_test,dv = dict_vec(train, ['Sex','SibSp', 'Parch', 'Pclass', 'Embarked'],is_test = True,test_set =test)
+
+
+def ks_gini_metrics(base, probability="Probability_of_event", event_name="Event", total_name="Total",
+                   ascending=False):
+    """
+    By : Kanishk Dogar
+    Get the KS/Gini coefficient from a pivot table with 3 specific columns - probability/score band, event count and total count
+    Parameters
+    ----------
+    base: pd.DataFrame
+        A pandas dataframe created using a group by operation with a probability or score band.
+        The pivot should be created with margins=False
+    probability: str
+        column name of the column that contains the band
+    event_name: str
+        column name of the column that contains the event count for every band
+    total_name: str
+        column name of the column that contains the total count for every band
+    ascending: bool
+        Order of the probability or score band in the final table
+    """
+    base = base.loc[:, [probability, event_name, total_name]]
+    base = base[base.loc[:, total_name].notnull()]
+    base = base.append(pd.DataFrame(data={event_name: np.sum(base.loc[:, event_name]),
+                                          total_name: np.sum(base.loc[:, total_name]),
+                                          probability: "All"},index=["All"]), ignore_index=True, sort=True)
+
+    base = base[base.loc[:, probability] != "All"]. \
+    sort_values(by=probability, ascending=ascending). \
+    append(base[base.loc[:, probability] == "All"], sort=True).loc[:, [probability, total_name, event_name]]
+
+    base["Non_"+event_name] = base.loc[:, total_name] - base.loc[:, event_name]
+    base["Cumulative_Non_"+event_name] = base.loc[:, "Non_"+event_name].cumsum()
+    base.loc[base[base.loc[:, probability] == "All"].index, "Cumulative_Non_"+event_name] = \
+    base.loc[base[base.loc[:, probability] == "All"].index, "Non_"+event_name]
+    base["Cumulative_"+event_name] = base.loc[:, event_name].cumsum()
+    base.loc[base[base.loc[:, probability] == "All"].index, "Cumulative_Event"] = \
+    base.loc[base[base.loc[:, probability] == "All"].index, "Event"]
+    base["Population_%"] = base.loc[:, total_name]/base[base.loc[:, probability] == "All"].loc[:, total_name].values
+    base["Cumulative_Non_"+event_name+"_%"] = \
+    base.loc[:, "Cumulative_Non_"+event_name]/base[base.loc[:, probability] == "All"].loc[:, "Cumulative_Non_"+event_name].values
+    base["Cumulative_"+event_name+"_%"] = \
+    base.loc[:, "Cumulative_"+event_name]/base[base.loc[:, probability] == "All"].loc[:, "Cumulative_"+event_name].values
+    base["Difference"] = base["Cumulative_"+event_name+"_%"] - base["Cumulative_Non_"+event_name+"_%"]
+    base[event_name+"_rate"] = base.loc[:, event_name]/base.loc[:, total_name]
+
+    base["Gini"] = ((base["Cumulative_"+event_name+"_%"]+base["Cumulative_"+event_name+"_%"].shift(1).fillna(0))/2) \
+    *(base["Cumulative_Non_"+event_name+"_%"]-base["Cumulative_Non_"+event_name+"_%"].shift(1).fillna(0))
+
+    base.loc[base[base.loc[:, probability] == "All"].index, "Gini"] = np.nan
+    model_KS = np.max(base[base.loc[:, probability] != "All"].Difference)*100
+    model_Gini = (2*(np.sum(base[base.loc[:, probability] != "All"].Gini))-1)*100
+    return base, model_KS, model_Gini
+
+
+def proba_score_performance(actual, prediction, test_set=False, train_bins=0, event=1, target="target",
+                              probability="Probability_of_event", event_name="Event", total_name="Total",
+                             ascending=False, bins=10):
+    """
+    By : Kanishk Dogar
+    Get the KS/Gini coefficient and the table to create the lorenz curve with 10 bins
+    Parameters
+    ----------
+    actual: pd.Series
+        A pandas Series with the target values
+    prediction: np.array
+    A numpy array with the predicted probabilities or score. 1 D array with the same length as actual
+    test_set: bool
+        Set to False if the prediction needs to be binned using quantiles. True if training set bins are present
+        train_bins = a list of cut points if this is True
+    train_bins: list
+        list of cutpoints that bin the training set into 10 parts
+    event: integer
+        The target value the gini table needs to be created for
+   target: str
+        The name of the target column in `actual`. If the name does not match, it will be changed to the user input
+    probability: str
+        column name of the column that contains the band
+    event_name: str
+        column name of the column that contains the event count for every band
+    total_name: str
+        column name of the column that contains the total count for every band
+    ascending: bool
+        Order of the probability or score band in the final table
+    bins: integer
+        no. of quantile bins to create
+    """
+    actual.name = target
+    performance = pd.concat([pd.DataFrame(prediction, columns=[probability], index=actual.index), pd.DataFrame(actual)], axis=1)
+    performance.loc[:, target] = np.where(performance.loc[:, target] == event, 1, 0)
+
+    if test_set:
+        performance[probability] = pd.cut(performance.loc[:, probability], bins=train_bins, include_lowest=True)
+    else:
+        _, train_bins = pd.qcut(performance.loc[:, probability].round(12), bins, retbins=True, duplicates="drop")
+        train_bins[0] = np.min([0.0, performance.loc[:, probability].min()])
+        train_bins[train_bins.shape[0]-1] = np.max([1.0, performance.loc[:, probability].max()])
+        performance[probability] = pd.cut(performance.loc[:, probability], bins=train_bins, include_lowest=True)   
+
+    performance = pd.concat([performance.groupby(by=probability)[target].sum(),
+                     performance.groupby(by=probability)[target].count()], axis=1)
+    performance[probability] = performance.index
+    performance.columns = [event_name, total_name, probability]
+
+    performance, model_KS, model_Gini = ks_gini_metrics(performance, probability=probability, event_name=event_name,
+                                                       total_name=total_name, ascending=ascending)
+
+    if test_set:
+        return performance, model_KS, model_Gini
+    else:
+        return performance, model_KS, model_Gini, train_bins
+
+    
+
