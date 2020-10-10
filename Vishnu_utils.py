@@ -289,3 +289,74 @@ def get_perf_metric(estimator, X_train, X_test,y_train, y_test ,th = 0.5):
                   'perf_df': perf_list.T, 'train_cf' : train_cf, 'test_cf' :test_cf,
                    'train_gini_table' : train_gini_table, 'test_gini_table':test_gini_table}
     return metric_dict
+
+#7 - returns the correlation df in long format and list of variables having corr coeff <= threshold
+def cor_long_df(data, cor_meth = 'pearson',th = 0.7) :
+    '''
+    By : Vishnu Prakash Singh
+    This function returns the correlation coefficient between two variables in long format and list of non correlated variables in that order
+    
+    Parameters
+    ----------
+    data : data on which correlation coefficient is to be calculated
+    cor_meth : method used for calculating correlation coefficient
+    th : threshold for the correlation, if corr_coeff > th, then correlated, else not
+    
+    Returns
+    -------
+    corr_df : pandas DF containing correlation coefficients in long format
+    non_cor_var : list of variables which have corr coef <= th
+    '''
+    cor_mat = df.corr(method=cor_meth)
+    corr_df = []
+    for i in range(len(cor_mat.columns)):
+        for j in range(len(cor_mat.index)):
+            if (i>j):
+                corr_df.append([cor_mat.columns[i], cor_mat.columns[j],round(cor_mat.iloc[i,j],4)])
+    corr_df = pd.DataFrame(corr_df,columns = ['cor_var1', 'cor_var2', 'cor_coef'])
+    corr_df = corr_df.reindex(corr_df.cor_coef.abs().sort_values(ascending = False).index)
+    non_cor_var = [a for a in cor_mat.columns if a not in corr_df[corr_df.cor_coef > th].cor_var1]
+    return corr_df, non_cor_var
+
+corr_df,non_cor_var = cor_long_df(data = df, cor_meth = 'pearson',th = 0.7)
+
+#8 - returns the correlation plot and correlation df in long format and list of variables having corr coeff <= threshold
+def cor_mat_plot(data,cor_meth = 'pearson',th = 0.7,plot_type = 'lower', fig_sizex = 10, fig_sizey = 10):
+    '''
+    By : Vishnu Prakash Singh
+    This function returns the correlation plot, correlation coefficient between two variables in long format and list of non correlated variables in that order
+       
+    Parameters
+    ----------
+    data : data on which correlation coefficient is to be calculated
+    cor_meth : method used for calculating correlation coefficient {'pearson', 'kendall', 'spearman'}
+    th : threshold for the correlation, if corr_coeff > th, then correlated, else not
+    plot_type : lower - only lower traingle plot, upper - only upper triangle plot, None - Full matrix plot
+    fig_sizex : size of the plot on x axis 
+    fig_sizey : size of the plot on y axis 
+    
+    Returns
+    -------
+    fig : correlation plot
+    corr_df : pandas DF containing correlation coefficients in long format
+    non_cor_var : list of variables which have corr coef <= th
+    '''
+    from matplotlib import pyplot as plt
+    import seaborn as sns
+    cor_mat = data.corr(method=cor_meth)
+    if (plot_type == 'lower'):
+        msk = np.triu(np.ones_like(cor_mat, dtype=bool))
+    elif (plot_type == 'upper'):
+        msk = np.tril(np.ones_like(cor_mat, dtype=bool))    
+    else :
+        msk = None
+    plt.ioff()
+    fig = plt.figure(figsize=(fig_sizex,fig_sizey))
+    x = sns.heatmap(cor_mat, mask=msk,annot=True,fmt='.2f',center=0,linewidths = 0.5,cmap = 'coolwarm_r',vmin=-1, vmax=1, \
+                square=True,)
+    x.set_title('Correlation Matrix Plot');
+    x.set_xticklabels(x.get_xticklabels(),rotation=30, fontdict = {'horizontalalignment' : 'right'})
+    corr_df, non_cor_var = cor_long_df(data = data, cor_meth = cor_meth,th = th)
+    return fig, corr_df, non_cor_var
+
+corplot,corr_df,non_cor_vars  = cor_mat_plot(data = df,plot_type = 'lower', fig_sizex = 10, fig_sizey = 10)
